@@ -276,3 +276,6 @@ TSWLatexianTemp*
 
 # Makeindex log files
 *.lpz
+ReferenceExport/.DS_Store
+ReferenceExport/ref.pdf
+ReferenceExport/ref.tex

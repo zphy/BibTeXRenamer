@@ -7,11 +7,12 @@ Created on Fri Sep  7 14:17:54 2018
 
 Convert Mendeley-exported citation files into desired format
 """
-import re, sys
+import re, sys, os
 fdn = './'
-print(sys.argv[1])
-fn_all = [str(sys.argv[1])]#['My Collection']
+#print(sys.argv[1])
+fn_all = ['My Collection.bib']#[str(sys.argv[1])]#
 fnout = 'main'
+fntex = 'ReferenceExport/ref.tex' # generate tex file
 dataout = ''
 for fn in fn_all:
     with open(fdn+fn,'r',encoding='utf-8') as fin:
@@ -79,6 +80,16 @@ for fn in fn_all:
                     break
             for j in range(len(split_data)):
                 if split_data[j][0:8]=='keywords':
+                    k = j
+                    while k < len(split_data):
+                        if split_data[k].count('}')-split_data[k].count('{')>0 or \
+                            (split_data[k].count('}')==split_data[k].count('{') and k == j):
+                            break
+                        k = k+1
+                    split_data = split_data[0:j]+split_data[k+1:]
+                    break
+            for j in range(len(split_data)):
+                if split_data[j][0:8]=='language':
                     k = j
                     while k < len(split_data):
                         if split_data[k].count('}')-split_data[k].count('{')>0 or \
@@ -165,6 +176,8 @@ for fn in fn_all:
                         1
                 curr_data = data[post+1:pos2]
                 split_data = curr_data.split(',')
+                if split_data[0][0:4]=='wade':
+                    1
                 for j in range(len(split_data)):
                     if split_data[j][0:8]=='abstract':
                         k = j
@@ -197,11 +210,27 @@ for fn in fn_all:
                         break
                 dataout = dataout + data[pos:post+1] + ','.join(split_data) + '}\n'
                 pos = pos2
-                nonart_list.append(data[pos:pos+5])
+                nonart_list.append(split_data[0])
                 #pos = pos + 1
-                
+with open(fntex,'w') as fn:
+    fn.write('\documentclass[onecolumn,superscriptaddress,prl]{revtex4-2}\n \\begin{document}\n'+ \
+             '\\cite{' + ','.join(key_list) + ',' + ','.join(nonart_list[0:2]) + '}\n'\
+             ' \\bibliography{main}\n \end{document}')  
 print(str(len(key_list))+' articles processed!')
 print(str(len(nonart_list))+' items are not articles!')
+#print(key_list)
+#print(nonart_list)
 dataout = dataout + '@misc{SM, note={See Supplemental Material}}\n' + '@misc{otherpaper, note={See Accompanying Paper}}'
 with open(fdn+fnout+'.bib','w',encoding='utf-8') as fout:
     fout.write(dataout)
+os.system('cp main.bib ReferenceExport/main.bib')
+os.chdir('ReferenceExport')
+os.system('latex ref > /dev/null')   # prevent printing a bunch of stuff on the screen
+os.system('latex ref > /dev/null')
+print('First compilation done!')
+os.system('bibtex ref > /dev/null')
+print('Bibtex compilation done!')
+os.system('pdflatex ref > /dev/null')
+print('Second compilation done!')
+os.system('pdflatex ref > /dev/null')
+print('Final compilation done!')
